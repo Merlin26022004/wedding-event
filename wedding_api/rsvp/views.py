@@ -1,19 +1,38 @@
-# rsvp/views.py
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import status
 from .models import Guest
 
 @api_view(['POST'])
 def rsvp(request):
-    data = request.data
-    guest = Guest.objects.create(
-        name=data.get('name'),
-        attending=data.get('attending'),
-        guests_count=data.get('guests_count')
-    )
-    return Response({"message": "Saved successfully"})
+    try:
+        data = request.data
 
-from django.http import HttpResponse
+        name = data.get('name')
+        attending = data.get('attending')
+        guests = data.get('guests')
 
-def home(request):
-    return HttpResponse("Wedding API is running 💍")
+        # 🔥 HARD VALIDATION
+        if not name:
+            return Response({"error": "Name required"}, status=400)
+
+        if guests is None:
+            return Response({"error": "Guests required"}, status=400)
+
+        # 🔥 convert safely
+        try:
+            guests = int(guests)
+        except:
+            return Response({"error": "Guests must be number"}, status=400)
+
+        Guest.objects.create(
+            name=name,
+            attending=bool(attending),
+            guests_count=guests
+        )
+
+        return Response({"message": "Saved"}, status=201)
+
+    except Exception as e:
+        print("ERROR:", str(e))  # 👈 VERY IMPORTANT (shows in Render logs)
+        return Response({"error": str(e)}, status=400)
