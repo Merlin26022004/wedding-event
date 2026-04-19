@@ -15,68 +15,69 @@ class _RsvpPopupState extends State<RsvpPopup> {
   bool isLoading = false;
 
   Future<void> submitRSVP() async {
-    // Validation
-    if (nameController.text.isEmpty || guestsController.text.isEmpty) {
+  if (nameController.text.isEmpty || guestsController.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please fill all fields")),
+    );
+    return;
+  }
+
+  if (int.tryParse(guestsController.text) == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please enter a valid number of guests")),
+    );
+    return;
+  }
+
+  setState(() {
+    isLoading = true;
+  });
+
+  try {
+    String baseUrl = "https://wedding-event-dn6h.onrender.com";
+
+    final response = await http
+        .post(
+          Uri.parse("$baseUrl/rsvp"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({
+            "name": nameController.text,
+            "attending": attending,
+            "guests": int.parse(guestsController.text),
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    print("Status Code: ${response.statusCode}");
+    print("Response Body: ${response.body}");
+
+    if (!mounted) return;
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields")),
+        const SnackBar(content: Text("Submitted 💍")),
       );
-      return;
+      Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: ${response.body}")),
+      );
     }
+  } catch (e) {
+    print("ERROR: $e");
 
-    if (int.tryParse(guestsController.text) == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a valid number of guests")),
-      );
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      String baseUrl = "http://127.0.0.1:8000";
-      try {
-        if (Platform.isAndroid) baseUrl = "http://10.0.2.2:8000";
-      } catch (e) {
-        // Platform is not supported on web
-      }
-      
-      final response = await http.post(
-        Uri.parse("$baseUrl/rsvp/"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "name": nameController.text,
-          "attending": attending,
-          "guests_count": int.parse(guestsController.text),
-        }),
-      );
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Submitted 💍", style: TextStyle(color: Colors.white))),
-        );
-        Navigator.of(context).pop(); // Close the popup on success
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error submitting")),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Server error")),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Server error")),
+    );
+  } finally {
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
+}
 
   @override
   void dispose() {
