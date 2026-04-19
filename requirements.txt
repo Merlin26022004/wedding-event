@@ -5,4 +5,4 @@ gunicorn==25.3.0
 packaging==26.1
 sqlparse==0.5.5
 tzdata==2026.1
- 
+djangorestframework
